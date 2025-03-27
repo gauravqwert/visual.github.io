@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-adsense-account" content="ca-pub-4833180960471225">
+    <title>CSV Data Analysis Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js without source maps -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4833180960471225"
+        crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-collapsed-width: 80px;
+            --primary-color: #4e73df;
+            --secondary-color: #f8f9fc;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f8f9fc;
+            overflow-x: hidden;
+        }
+
+        #sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            background: linear-gradient(180deg, var(--primary-color) 0%, #224abe 100%);
+            color: white;
+            transition: all 0.3s;
+            z-index: 1000;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        #sidebar.collapsed .sidebar-text {
+            display: none;
+        }
+
+        #sidebar.collapsed .nav-link {
+            justify-content: center;
+        }
+
+        #sidebar.collapsed .sidebar-brand-text {
+            display: none;
+        }
+
+        #sidebar.collapsed .sidebar-brand-icon {
+            margin-right: 0;
+        }
+
+        #main-content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s;
+            min-height: 100vh;
+        }
+
+        #sidebar.collapsed+#main-content {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+
+        .sidebar-brand {
+            height: 4.375rem;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 800;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            letter-spacing: 0.05rem;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-brand-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+
+        .sidebar-divider {
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            margin: 0 1rem 1rem;
+        }
+
+        .nav-item {
+            position: relative;
+            list-style-type: none;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-link:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link i {
+            font-size: 0.85rem;
+            margin-right: 0.25rem;
+        }
+
+        .active {
+            color: white !important;
+        }
+
+        .sidebar-heading {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 0 1rem 1rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 0.35rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background-color: #f8f9fc;
+            border-bottom: 1px solid #e3e6f0;
+            padding: 1rem 1.35rem;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .data-table {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .toggle-sidebar {
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #d1d3e2;
+        }
+
+        .toggle-sidebar:hover {
+            color: #b7b9cc;
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d3e2;
+            border-radius: 0.35rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: #f8f9fc;
+        }
+
+        .upload-area:hover {
+            border-color: #b7b9cc;
+            background-color: #e9ecef;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #4e73df;
+            margin-bottom: 1rem;
+        }
+
+        .data-preview {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .chart-options {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .no-data-message {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .text_heading {
+            text-align: center !important;
+        }
+
+        /* Ad Space Section */
+        #ad-space {
+            margin-top: 30px;
+            text-align: center;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #ad-space h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                width: var(--sidebar-collapsed-width);
+            }
+
+            #sidebar .sidebar-text {
+                display: none;
+            }
+
+            #sidebar .nav-link {
+                justify-content: center;
+            }
+
+            #sidebar .sidebar-brand-text {
+                display: none;
+            }
+
+            #sidebar .sidebar-brand-icon {
+                margin-right: 0;
+            }
+
+            #main-content {
+                margin-left: var(--sidebar-collapsed-width);
+            }
+
+            .sidebar-brand {
+                padding: 1.5rem 0.5rem;
+            }
+
+            .chart-options {
+                flex-direction: column;
+            }
+
+            .chart-options select {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div class="sidebar-brand d-flex align-items-center justify-content-center">
+            <div class="sidebar-brand-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="sidebar-brand-text mx-3">Data Dashboard</div>
+        </div>
+        <hr class="sidebar-divider">
+
+        <div class="sidebar-heading">Core</div>
+
+        <li class="nav-item">
+            <a class="nav-link active" href="#" data-section="upload-section">
+                <i class="fas fa-fw fa-upload"></i>
+                <span class="sidebar-text">Upload Data</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-section="data-preview-section">
+                <i class="fas fa-fw fa-table"></i>
+                <span class="sidebar-text">Data Preview</span>
+            </a>
+        </li>
+
+        <div class="sidebar-heading">Visualizations</div>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-section="bar-chart-section">
+                <i class="fas fa-fw fa-chart-bar"></i>
+                <span class="sidebar-text">Bar Chart</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-section="line-chart-section">
+                <i class="fas fa-fw fa-chart-line"></i>
+                <span class="sidebar-text">Line Chart</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-section="pie-chart-section">
+                <i class="fas fa-fw fa-chart-pie"></i>
+                <span class="sidebar-text">Pie Chart</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-section="scatter-plot-section">
+                <i class="fas fa-fw fa-braille"></i>
+                <span class="sidebar-text">Scatter Plot</span>
+            </a>
+        </li>
+
+        <div class="sidebar-heading">Statistics</div>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#" data-section="stats-section">
+                <i class="fas fa-fw fa-calculator"></i>
+                <span class="sidebar-text">Data Statistics</span>
+            </a>
+        </li>
+
+        <div class="text-center d-none d-md-inline mt-3">
+            <button class="rounded-circle border-0 toggle-sidebar" id="sidebarToggle">
+                <i class="fas fa-angle-left"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content">
+        <!-- Top Navigation -->
+        <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+            <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                <i class="fa fa-bars"></i>
+            </button>
+
+            <h2 class="mb-0 text-gray-800">&nbsp;&nbsp;CSV Data Analysis Dashboard</h2>
+        </nav>
+
+        <!-- Content Sections -->
+        <div class="container-fluid">
+            <!-- Upload Section -->
+            <div class="section-content" id="upload-section">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Upload CSV File</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="upload-area" id="drop-area">
+                            <div class="upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <h5>Drag & Drop your CSV file here</h5>
+                            <p class="text-muted">or</p>
+                            <button class="btn btn-primary" id="browse-btn">Browse Files</button>
+                            <input type="file" id="file-input" accept=".csv" style="display: none;">
+                        </div>
+                        <div class="mt-3" id="file-info"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ad Space -->
+            <section id="ad-space">
+                <h3>Advertisement</h3>
+                <!-- Google AdSense Ad Unit -->
+                <ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-layout="in-article"
+                    data-ad-format="fluid" data-ad-client="ca-pub-4833180960471225" data-ad-slot="2708730878"></ins>
+                <script>
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+            </section>
+
+            <!-- Data Preview Section -->
+            <div class="section-content" id="data-preview-section" style="display: none;">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Data Preview</h6>
+                        <div class="dropdown no-arrow">
+                            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                                data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                                aria-labelledby="dropdownMenuLink">
+                                <div class="dropdown-header">Options:</div>
+                                <a class="dropdown-item" href="#" id="download-csv">Download CSV</a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#" id="clear-data">Clear Data</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive data-preview">
+                            <table class="table table-bordered" id="data-table">
+                                <thead class="thead-light">
+                                    <!-- Table headers will be added dynamically -->
+                                </thead>
+                                <tbody>
+                                    <!-- Table data will be added dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bar Chart Section -->
+            <div class="section-content" id="bar-chart-section" style="display: none;">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Bar Chart</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-options d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="me-3 mb-2">
+                                <label for="bar-x-axis" class="form-label">X-Axis:</label>
+                                <select class="form-select form-select-sm" id="bar-x-axis"></select>
+                            </div>
+                            <div class="me-3 mb-2">
+                                <label for="bar-y-axis" class="form-label">Y-Axis:</label>
+                                <select class="form-select form-select-sm" id="bar-y-axis"></select>
+                            </div>
+                            <button class="btn btn-sm btn-primary mb-2" id="update-bar-chart">Update Chart</button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                        <div id="bar-chart-message" class="no-data-message" style="display: none;">
+                            No valid data available for the selected columns.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Line Chart Section -->
+            <div class="section-content" id="line-chart-section" style="display: none;">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Line Chart</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-options d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="me-3 mb-2">
+                                <label for="line-x-axis" class="form-label">X-Axis:</label>
+                                <select class="form-select form-select-sm" id="line-x-axis"></select>
+                            </div>
+                            <div class="me-3 mb-2">
+                                <label for="line-y-axis" class="form-label">Y-Axis:</label>
+                                <select class="form-select form-select-sm" id="line-y-axis"></select>
+                            </div>
+                            <button class="btn btn-sm btn-primary mb-2" id="update-line-chart">Update Chart</button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="lineChart"></canvas>
+                        </div>
+                        <div id="line-chart-message" class="no-data-message" style="display: none;">
+                            No valid data available for the selected columns.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pie Chart Section -->
+            <div class="section-content" id="pie-chart-section" style="display: none;">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Pie Chart</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-options d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="me-3 mb-2">
+                                <label for="pie-category" class="form-label">Category:</label>
+                                <select class="form-select form-select-sm" id="pie-category"></select>
+                            </div>
+                            <div class="me-3 mb-2">
+                                <label for="pie-value" class="form-label">Value:</label>
+                                <select class="form-select form-select-sm" id="pie-value"></select>
+                            </div>
+                            <button class="btn btn-sm btn-primary mb-2" id="update-pie-chart">Update Chart</button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                        <div id="pie-chart-message" class="no-data-message" style="display: none;">
+                            No valid data available for the selected columns.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scatter Plot Section -->
+            <div class="section-content" id="scatter-plot-section" style="display: none;">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Scatter Plot</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-options d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="me-3 mb-2">
+                                <label for="scatter-x-axis" class="form-label">X-Axis:</label>
+                                <select class="form-select form-select-sm" id="scatter-x-axis"></select>
+                            </div>
+                            <div class="me-3 mb-2">
+                                <label for="scatter-y-axis" class="form-label">Y-Axis:</label>
+                                <select class="form-select form-select-sm" id="scatter-y-axis"></select>
+                            </div>
+                            <button class="btn btn-sm btn-primary mb-2" id="update-scatter-plot">Update Chart</button>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="scatterChart"></canvas>
+                        </div>
+                        <div id="scatter-chart-message" class="no-data-message" style="display: none;">
+                            No valid data available for the selected columns.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Statistics Section -->
+            <div class="section-content" id="stats-section" style="display: none;">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Data Statistics</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="stats-table">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Type</th>
+                                        <th>Count</th>
+                                        <th>Unique</th>
+                                        <th>Min</th>
+                                        <th>Max</th>
+                                        <th>Mean</th>
+                                        <th>Median</th>
+                                        <th>Std Dev</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Statistics will be added dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            let csvData = [];
+            let headers = [];
+
+            // Chart instances
+            let barChart = null;
+            let lineChart = null;
+            let pieChart = null;
+            let scatterChart = null;
+
+            // Toggle sidebar
+            $('#sidebarToggle, #sidebarToggleTop').click(function () {
+                $('#sidebar').toggleClass('collapsed');
+                // Rotate the icon
+                const icon = $('#sidebarToggle i');
+                if ($('#sidebar').hasClass('collapsed')) {
+                    icon.removeClass('fa-angle-left').addClass('fa-angle-right');
+                } else {
+                    icon.removeClass('fa-angle-right').addClass('fa-angle-left');
+                }
+            });
+
+            // Navigation menu items
+            $('.nav-link').click(function (e) {
+                e.preventDefault();
+                $('.nav-link').removeClass('active');
+                $(this).addClass('active');
+
+                const sectionId = $(this).data('section');
+                $('.section-content').hide();
+                $(`#${sectionId}`).show();
+
+                // If showing charts and data is loaded, update them
+                if (csvData.length > 0) {
+                    if (sectionId === 'bar-chart-section') {
+                        updateBarChart();
+                    } else if (sectionId === 'line-chart-section') {
+                        updateLineChart();
+                    } else if (sectionId === 'pie-chart-section') {
+                        updatePieChart();
+                    } else if (sectionId === 'scatter-plot-section') {
+                        updateScatterPlot();
+                    } else if (sectionId === 'stats-section') {
+                        updateStatistics();
+                    }
+                }
+            });
+
+            // File upload handling
+            const dropArea = $('#drop-area');
+            const fileInput = $('#file-input');
+            const browseBtn = $('#browse-btn');
+            const fileInfo = $('#file-info');
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.on(eventName, preventDefaults);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            // Highlight drop area when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.on(eventName, highlight);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.on(eventName, unhighlight);
+            });
+
+            function highlight() {
+                dropArea.addClass('bg-primary text-white');
+            }
+
+            function unhighlight() {
+                dropArea.removeClass('bg-primary text-white');
+            }
+
+            // Handle dropped files
+            dropArea.on('drop', handleDrop);
+
+            function handleDrop(e) {
+                const dt = e.originalEvent.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+
+            // Handle file selection via browse button
+            browseBtn.click(function () {
+                fileInput.click();
+            });
+
+            fileInput.change(function () {
+                handleFiles(this.files);
+            });
+
+            function handleFiles(files) {
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                        fileInfo.html(`<div class="alert alert-info">Processing file: ${file.name}...</div>`);
+                        parseCSV(file);
+                    } else {
+                        fileInfo.html(`<div class="alert alert-danger">Please upload a CSV file.</div>`);
+                    }
+                }
+            }
+
+            function parseCSV(file) {
+                Papa.parse(file, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    complete: function (results) {
+                        if (results.data.length > 0 && results.meta.fields) {
+                            csvData = results.data;
+                            headers = results.meta.fields;
+
+                            fileInfo.html(`<div class="alert alert-success">File loaded successfully with ${csvData.length} rows and ${headers.length} columns.</div>`);
+
+                            // Update data preview
+                            updateDataPreview();
+
+                            // Update chart options
+                            updateChartOptions();
+
+                            // Show data preview section
+                            $('.section-content').hide();
+                            $('#data-preview-section').show();
+                            $('.nav-link').removeClass('active');
+                            $('[data-section="data-preview-section"]').addClass('active');
+
+                            // Initialize charts with default values
+                            initializeCharts();
+                        } else {
+                            fileInfo.html(`<div class="alert alert-danger">No valid data found in the CSV file.</div>`);
+                        }
+                    },
+                    error: function (error) {
+                        fileInfo.html(`<div class="alert alert-danger">Error parsing CSV: ${error.message}</div>`);
+                    }
+                });
+            }
+
+            function updateDataPreview() {
+                const table = $('#data-table');
+                const thead = table.find('thead');
+                const tbody = table.find('tbody');
+
+                // Clear existing data
+                thead.empty();
+                tbody.empty();
+
+                // Add headers
+                let headerRow = $('<tr></tr>');
+                headers.forEach(header => {
+                    headerRow.append(`<th>${header}</th>`);
+                });
+                thead.append(headerRow);
+
+                // Add data rows (limit to 50 for preview)
+                const previewRows = Math.min(50, csvData.length);
+                for (let i = 0; i < previewRows; i++) {
+                    let row = $('<tr></tr>');
+                    headers.forEach(header => {
+                        let cellValue = csvData[i][header];
+                        // Handle undefined/null values
+                        if (cellValue === undefined || cellValue === null) {
+                            cellValue = '';
+                        } else if (typeof cellValue === 'number') {
+                            // Format numbers to 2 decimal places
+                            cellValue = Number(cellValue.toFixed(2));
+                        }
+                        row.append(`<td>${cellValue}</td>`);
+                    });
+                    tbody.append(row);
+                }
+
+                if (previewRows < csvData.length) {
+                    tbody.append(`<tr><td colspan="${headers.length}" class="text-center">... and ${csvData.length - previewRows} more rows</td></tr>`);
+                }
+            }
+
+            function updateChartOptions() {
+                // Clear existing options
+                $('#bar-x-axis, #bar-y-axis, #line-x-axis, #line-y-axis, #pie-category, #pie-value, #scatter-x-axis, #scatter-y-axis').empty();
+
+                // Add default option
+                const defaultOption = '<option value="">Select column</option>';
+                $('#bar-x-axis, #line-x-axis, #scatter-x-axis, #pie-category').append(defaultOption);
+                $('#bar-y-axis, #line-y-axis, #scatter-y-axis, #pie-value').append(defaultOption);
+
+                // Add options for each header
+                headers.forEach(header => {
+                    $('#bar-x-axis, #line-x-axis, #scatter-x-axis, #pie-category').append(`<option value="${header}">${header}</option>`);
+                    $('#bar-y-axis, #line-y-axis, #scatter-y-axis, #pie-value').append(`<option value="${header}">${header}</option>`);
+                });
+
+                // Set default selections if there are at least 2 columns
+                if (headers.length >= 2) {
+                    $('#bar-x-axis, #line-x-axis, #scatter-x-axis, #pie-category').val(headers[0]);
+                    $('#bar-y-axis, #line-y-axis, #scatter-y-axis, #pie-value').val(headers[1]);
+                }
+            }
+
+            function initializeCharts() {
+                // Initialize all charts with default values
+                updateBarChart();
+                updateLineChart();
+                updatePieChart();
+                updateScatterPlot();
+                updateStatistics();
+            }
+
+            function validateChartData(xAxis, yAxis) {
+                if (!xAxis || !yAxis) {
+                    return false;
+                }
+
+                // Check if there's at least one row with valid data
+                const hasValidData = csvData.some(row => {
+                    return row[xAxis] !== undefined && row[xAxis] !== null &&
+                        row[yAxis] !== undefined && row[yAxis] !== null &&
+                        !isNaN(row[yAxis]);
+                });
+
+                return hasValidData;
+            }
+
+            function updateBarChart() {
+                const ctx = document.getElementById('barChart');
+                const xAxis = $('#bar-x-axis').val();
+                const yAxis = $('#bar-y-axis').val();
+                const message = $('#bar-chart-message');
+
+                // Hide message by default
+                message.hide();
+
+                // Validate data
+                if (!validateChartData(xAxis, yAxis)) {
+                    if (barChart) {
+                        barChart.destroy();
+                        barChart = null;
+                    }
+                    message.show();
+                    return;
+                }
+
+                // Prepare data - handle numeric values only
+                const filteredData = csvData.filter(row =>
+                    row[xAxis] !== undefined && row[xAxis] !== null &&
+                    row[yAxis] !== undefined && row[yAxis] !== null &&
+                    !isNaN(row[yAxis])
+                );
+
+                const labels = filteredData.map(row => String(row[xAxis]) || '');
+                const data = filteredData.map(row => parseFloat(row[yAxis]) || 0);
+
+                // Destroy previous chart if it exists
+                if (barChart) {
+                    barChart.destroy();
+                }
+
+                // Create new chart
+                barChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: yAxis,
+                            data: data,
+                            backgroundColor: 'rgba(78, 115, 223, 0.5)',
+                            borderColor: 'rgba(78, 115, 223, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: yAxis
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: xAxis
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `${yAxis} by ${xAxis}`
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return `${yAxis}: ${context.parsed.y}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateLineChart() {
+                const ctx = document.getElementById('lineChart');
+                const xAxis = $('#line-x-axis').val();
+                const yAxis = $('#line-y-axis').val();
+                const message = $('#line-chart-message');
+
+                // Hide message by default
+                message.hide();
+
+                // Validate data
+                if (!validateChartData(xAxis, yAxis)) {
+                    if (lineChart) {
+                        lineChart.destroy();
+                        lineChart = null;
+                    }
+                    message.show();
+                    return;
+                }
+
+                // Prepare data - handle numeric values only
+                const filteredData = csvData.filter(row =>
+                    row[xAxis] !== undefined && row[xAxis] !== null &&
+                    row[yAxis] !== undefined && row[yAxis] !== null &&
+                    !isNaN(row[yAxis])
+                );
+
+                const labels = filteredData.map(row => String(row[xAxis]) || '');
+                const data = filteredData.map(row => parseFloat(row[yAxis]) || 0);
+
+                // Destroy previous chart if it exists
+                if (lineChart) {
+                    lineChart.destroy();
+                }
+
+                // Create new chart
+                lineChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: yAxis,
+                            data: data,
+                            backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                            borderColor: 'rgba(78, 115, 223, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                            pointRadius: 3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                title: {
+                                    display: true,
+                                    text: yAxis
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: xAxis
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `${yAxis} over ${xAxis}`
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return `${yAxis}: ${context.parsed.y}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updatePieChart() {
+                const ctx = document.getElementById('pieChart');
+                const category = $('#pie-category').val();
+                const value = $('#pie-value').val();
+                const message = $('#pie-chart-message');
+
+                // Hide message by default
+                message.hide();
+
+                // Validate data
+                if (!category || !value) {
+                    if (pieChart) {
+                        pieChart.destroy();
+                        pieChart = null;
+                    }
+                    message.show();
+                    return;
+                }
+
+                // Prepare data - group by category and sum values
+                const groupedData = {};
+                let hasValidData = false;
+
+                csvData.forEach(row => {
+                    const cat = row[category] !== undefined && row[category] !== null ?
+                        String(row[category]) : 'Unknown';
+                    const val = parseFloat(row[value]) || 0;
+
+                    if (!isNaN(val)) {
+                        hasValidData = true;
+                        if (groupedData[cat]) {
+                            groupedData[cat] += val;
+                        } else {
+                            groupedData[cat] = val;
+                        }
+                    }
+                });
+
+                if (!hasValidData) {
+                    if (pieChart) {
+                        pieChart.destroy();
+                        pieChart = null;
+                    }
+                    message.show();
+                    return;
+                }
+
+                const labels = Object.keys(groupedData);
+                const data = Object.values(groupedData);
+
+                // Generate colors
+                const backgroundColors = labels.map((_, i) => {
+                    const hue = (i * 360 / labels.length) % 360;
+                    return `hsla(${hue}, 70%, 60%, 0.7)`;
+                });
+
+                // Destroy previous chart if it exists
+                if (pieChart) {
+                    pieChart.destroy();
+                }
+
+                // Create new chart
+                pieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `${value} by ${category}`
+                            },
+                            legend: {
+                                position: 'right'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((acc, data) => acc + data, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateScatterPlot() {
+                const ctx = document.getElementById('scatterChart');
+                const xAxis = $('#scatter-x-axis').val();
+                const yAxis = $('#scatter-y-axis').val();
+                const message = $('#scatter-chart-message');
+
+                // Hide message by default
+                message.hide();
+
+                // Validate data
+                if (!validateChartData(xAxis, yAxis)) {
+                    if (scatterChart) {
+                        scatterChart.destroy();
+                        scatterChart = null;
+                    }
+                    message.show();
+                    return;
+                }
+
+                // Prepare data - handle numeric values only
+                const filteredData = csvData.filter(row =>
+                    row[xAxis] !== undefined && row[xAxis] !== null && !isNaN(row[xAxis]) &&
+                    row[yAxis] !== undefined && row[yAxis] !== null && !isNaN(row[yAxis])
+                );
+
+                const data = filteredData.map(row => ({
+                    x: parseFloat(row[xAxis]) || 0,
+                    y: parseFloat(row[yAxis]) || 0
+                }));
+
+                // Destroy previous chart if it exists
+                if (scatterChart) {
+                    scatterChart.destroy();
+                }
+
+                // Create new chart
+                scatterChart = new Chart(ctx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: `${yAxis} vs ${xAxis}`,
+                            data: data,
+                            backgroundColor: 'rgba(78, 115, 223, 0.7)',
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: yAxis
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: xAxis
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `${yAxis} vs ${xAxis}`
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return `${xAxis}: ${context.parsed.x}, ${yAxis}: ${context.parsed.y}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateStatistics() {
+                const tableBody = $('#stats-table tbody');
+                tableBody.empty();
+
+                headers.forEach(header => {
+                    const columnData = csvData.map(row => row[header]).filter(val => val !== undefined && val !== null);
+
+                    if (columnData.length === 0) {
+                        tableBody.append(`
+                            <tr>
+                                <td>${header}</td>
+                                <td colspan="8" class="text-muted">No data</td>
+                            </tr>
+                        `);
+                        return;
+                    }
+
+                    // Determine data type
+                    let dataType = 'Mixed';
+                    if (columnData.every(val => typeof val === 'string')) {
+                        dataType = 'Text';
+                    } else if (columnData.every(val => typeof val === 'number' || val instanceof Number)) {
+                        dataType = 'Numeric';
+                    } else if (columnData.every(val => val instanceof Date || !isNaN(new Date(val)))) {
+                        dataType = 'Date';
+                    }
+
+                    // Calculate statistics
+                    const count = columnData.length;
+                    const unique = new Set(columnData.map(String)).size;
+
+                    let min = '', max = '', mean = '', median = '', stdDev = '';
+
+                    if (dataType === 'Numeric') {
+                        const numericData = columnData.map(Number).sort((a, b) => a - b);
+                        min = Math.min(...numericData).toFixed(2);
+                        max = Math.max(...numericData).toFixed(2);
+
+                        // Mean
+                        const sum = numericData.reduce((a, b) => a + b, 0);
+                        mean = (sum / numericData.length).toFixed(2);
+
+                        // Median
+                        const mid = Math.floor(numericData.length / 2);
+                        median = numericData.length % 2 !== 0 ?
+                            numericData[mid].toFixed(2) :
+                            ((numericData[mid - 1] + numericData[mid]) / 2).toFixed(2);
+
+                        // Standard deviation
+                        const squaredDiffs = numericData.map(val => Math.pow(val - parseFloat(mean), 2));
+                        const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / numericData.length;
+                        stdDev = Math.sqrt(avgSquaredDiff).toFixed(2);
+                    } else if (dataType === 'Date') {
+                        const dateData = columnData.map(d => new Date(d)).sort((a, b) => a - b);
+                        min = dateData[0].toLocaleDateString();
+                        max = dateData[dateData.length - 1].toLocaleDateString();
+                    } else if (dataType === 'Text') {
+                        // For text data, show min/max based on string length
+                        const lengths = columnData.map(val => String(val).length);
+                        min = Math.min(...lengths);
+                        max = Math.max(...lengths);
+                    }
+
+                    tableBody.append(`
+                        <tr>
+                            <td>${header}</td>
+                            <td>${dataType}</td>
+                            <td>${count}</td>
+                            <td>${unique}</td>
+                            <td>${min}</td>
+                            <td>${max}</td>
+                            <td>${mean}</td>
+                            <td>${median}</td>
+                            <td>${stdDev}</td>
+                        </tr>
+                    `);
+                });
+            }
+
+            // Chart update buttons
+            $('#update-bar-chart').click(updateBarChart);
+            $('#update-line-chart').click(updateLineChart);
+            $('#update-pie-chart').click(updatePieChart);
+            $('#update-scatter-plot').click(updateScatterPlot);
+
+            // Download CSV
+            $('#download-csv').click(function (e) {
+                e.preventDefault();
+                if (csvData.length > 0) {
+                    const csv = Papa.unparse(csvData);
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', 'data_export.csv');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    alert('No data to download');
+                }
+            });
+
+            // Clear data
+            $('#clear-data').click(function (e) {
+                e.preventDefault();
+                if (confirm('Are you sure you want to clear all data?')) {
+                    csvData = [];
+                    headers = [];
+                    $('#data-table thead, #data-table tbody').empty();
+                    $('#file-info').empty();
+                    $('.section-content').hide();
+                    $('#upload-section').show();
+                    $('.nav-link').removeClass('active');
+                    $('[data-section="upload-section"]').addClass('active');
+
+                    // Destroy all charts
+                    if (barChart) {
+                        barChart.destroy();
+                        barChart = null;
+                    }
+                    if (lineChart) {
+                        lineChart.destroy();
+                        lineChart = null;
+                    }
+                    if (pieChart) {
+                        pieChart.destroy();
+                        pieChart = null;
+                    }
+                    if (scatterChart) {
+                        scatterChart.destroy();
+                        scatterChart = null;
+                    }
+
+                    // Hide all no-data messages
+                    $('.no-data-message').hide();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
